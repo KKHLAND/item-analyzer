@@ -9,7 +9,12 @@
       @media print {
         @page {
           size: A4 portrait;
-          margin: 1.5cm;
+          margin: 1cm 1.5cm 2cm 1.5cm;
+          @bottom-center {
+            content: counter(page) " / " counter(pages);
+            font-size: 8pt;
+            color: #64748b;
+          }
         }
         body * {
             visibility: hidden;
@@ -22,6 +27,53 @@
             left: 0;
             top: 0;
             width: 100%;
+        }
+        #analysis-report header {
+            position: relative;
+            margin-bottom: 0.8em;
+            padding-bottom: 0;
+            border-bottom: none !important;
+        }
+        #analysis-report header h2 {
+            font-size: 16pt !important;
+            font-weight: bold !important;
+            padding-top: 1em !important;
+            padding-right: 70px !important;
+            margin: 0;
+        }
+        #analysis-report header img {
+            width: 22mm !important;
+            top: 0 !important;
+        }
+        #analysis-report .analysis-card {
+            padding: 0.3em 0 !important;
+            margin-bottom: 0 !important;
+            border: none !important;
+            page-break-inside: avoid;
+        }
+        #analysis-report .analysis-card:not(:first-child) {
+            margin-top: 0.4em !important;
+        }
+        #analysis-report .analysis-card h3 {
+            font-size: 11pt !important;
+            margin-bottom: 0.2em !important;
+        }
+        #analysis-report .analysis-card p,
+        #analysis-report .analysis-card div {
+            font-size: 9.5pt !important;
+            line-height: 1.25 !important;
+            margin-bottom: 0.08em !important;
+        }
+        #analysis-report .analysis-card .flex {
+            margin-bottom: 0.08em !important;
+        }
+        #analysis-report .analysis-card .flex:last-child {
+            margin-bottom: 0 !important;
+        }
+        #analysis-report .analysis-card .flex p:first-child {
+            white-space: nowrap !important;
+            padding-right: 6px !important;
+            flex-shrink: 0 !important;
         }
       }
     </style>
@@ -92,9 +144,8 @@
                 for await (const chunk of stream) {
                     const text = chunk.text();
                     currentResult += text;
-                    // For streaming, we need a partial render without losing state
-                    state.analysisResult = currentResult; // update state directly
-                    render(); // re-render to show stream
+                    state.analysisResult = currentResult;
+                    render();
                 }
             } catch (e) {
                 console.error(e);
@@ -173,8 +224,7 @@
 
         const render = () => {
             const { file, analysisResult, isLoading, error, logoUrl, schoolName, academicYear, semester, examType, subjectName } = state;
-            const isAnalysisReady = !!file && !!schoolName && !!subjectName;
-
+            
             const Icons = {
                 BookCheck: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-cyan-300"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="m9 9.5 2 2 4-4"/></svg>`,
                 UploadCloud: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-12 w-12 text-blue-400 mb-4"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>`,
@@ -189,42 +239,24 @@
             const renderAnalysisContent = (content) => {
                 const stripMarkdown = (text) => {
                     if (!text) return '';
-                    return text
-                        .replace(/\*\*(.*?)\*\*|__(.*?)__/g, '$1$2')
-                        .replace(/\*(.*?)\*|_(.*?)_/g, '$1$2')
-                        .replace(/^\s*[-*+]\s*/, '')
-                        .trim();
+                    return text.replace(/\*\*(.*?)\*\*|__(.*?)__/g, '$1$2').replace(/\*(.*?)\*|_(.*?)_/g, '$1$2').replace(/^\s*[-*+]\s*/, '').trim();
                 };
-
                 return content.split('\n').map((line) => {
                     if (!line.trim() || line.trim() === '#') return '';
-                    
                     const parts = line.split(/:(.*)/s);
-                    const keyPart = parts[0];
-                    const valuePart = parts[1];
-
-                    if (valuePart !== undefined) {
-                        const key = stripMarkdown(keyPart);
-                        const value = stripMarkdown(valuePart);
-                        
-                        let keyStyles = "font-semibold text-blue-400 print:text-blue-700 w-40 flex-shrink-0 pr-2 text-lg print:text-base leading-snug";
-                        let valueStyles = "text-slate-300 print:text-slate-700 flex-grow text-lg print:text-base leading-snug";
-                        
+                    if (parts[1] !== undefined) {
+                        const key = stripMarkdown(parts[0]);
+                        const value = stripMarkdown(parts[1]);
+                        let keyStyles = "font-semibold text-blue-400 print:text-blue-700 flex-shrink-0 pr-1.5 text-lg whitespace-nowrap";
+                        let valueStyles = "text-slate-300 print:text-slate-700 flex-grow text-lg";
                         if (key === '정답' || key === '철자 및 어법') {
-                            keyStyles = "font-semibold text-red-400 print:text-red-700 w-40 flex-shrink-0 pr-2 text-lg print:text-base leading-snug";
-                            valueStyles = "text-red-400 print:text-red-700 flex-grow text-lg print:text-base leading-snug";
+                            keyStyles = "font-semibold text-red-400 print:text-red-700 flex-shrink-0 pr-1.5 text-lg whitespace-nowrap";
+                            valueStyles = "text-red-400 print:text-red-700 flex-grow text-lg";
                         }
-                        
-                        return `<div class="flex items-start">
-                                    <p class="${keyStyles}">${key}:</p>
-                                    <p class="${valueStyles}">${value}</p>
-                                </div>`;
+                        return `<div class="flex items-start mb-1"><p class="${keyStyles}">${key}:</p><p class="${valueStyles}">${value}</p></div>`;
                     }
-                    
                     const cleanedLine = stripMarkdown(line);
-                    if (!cleanedLine) return '';
-                    
-                    return `<p class="text-slate-300 print:text-slate-700 mt-1 text-lg print:text-base leading-snug">${cleanedLine}</p>`;
+                    return cleanedLine ? `<p class="text-slate-300 print:text-slate-700 text-lg mb-1">${cleanedLine}</p>` : '';
                 }).filter(Boolean).join('');
             };
 
@@ -233,9 +265,9 @@
                 const cards = markdownText.split('## ').filter(text => text.trim() !== '');
                 return `
                     <div id="analysis-report" class="print:shadow-none print:border-none print:p-0">
-                        <header class="relative mb-2 pb-2 border-b-2 border-slate-700 print:border-slate-200">
-                            ${logoUrl ? `<img src="${logoUrl}" alt="School Logo" class="absolute -top-4 right-0 w-24 h-auto object-contain" />` : ''}
-                            <h2 class="text-3xl font-bold text-center text-slate-100 print:text-slate-800 pt-4">
+                        <header class="relative mb-3 pb-2 border-b-2 border-slate-700 print:border-slate-300">
+                            ${logoUrl ? `<img src="${logoUrl}" alt="School Logo" class="absolute top-4 right-0 w-28 h-auto object-contain" />` : ''}
+                            <h2 class="text-3xl font-bold text-center text-slate-100 print:text-slate-800 pt-4 pr-20">
                                 ${academicYear}학년도 ${semester} ${examType} ${subjectName} 문항 분석
                             </h2>
                         </header>
@@ -244,14 +276,9 @@
                                 const lines = cardText.trim().split('\n');
                                 const title = lines.shift() || '분석';
                                 const content = lines.filter(line => !line.trim().startsWith('###')).join('\n');
-                                return `
-                                    <div class="analysis-card border-b border-slate-700 last:border-b-0 py-2">
-                                        <h3 class="text-xl font-bold text-blue-400 print:text-blue-700 mb-1">
-                                            <span>[${title}]</span>
-                                        </h3>
-                                        <div> 
-                                            ${renderAnalysisContent(content)}
-                                        </div>
+                                return `<div class="analysis-card border-b border-slate-700 last:border-b-0 py-3 print:border-slate-300">
+                                        <h3 class="text-xl font-bold text-blue-400 print:text-blue-700 mb-2">${`[${title}]`}</h3>
+                                        <div>${renderAnalysisContent(content)}</div>
                                     </div>`;
                             }).join('')}
                         </div>
@@ -263,19 +290,10 @@
                 <div class="w-full max-w-7xl bg-slate-800 rounded-2xl shadow-xl overflow-hidden print:shadow-none print:rounded-none print:bg-white print:text-slate-800">
                   <div class="print:hidden">
                     <header class="p-6 md:p-8 bg-gradient-to-r from-indigo-700 to-purple-600">
-                      <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                          <div class="bg-cyan-400/20 p-3 rounded-full">
-                            ${Icons.BookCheck}
-                          </div>
-                          <div>
-                            <h1 class="text-3xl font-bold text-slate-100">
-                              문항 분석 프로
-                            </h1>
-                            <p class="text-cyan-300 mt-1">AI 기반 문항 심층 분석</p>
-                          </div>
-                        </div>
-                      </div>
+                      <div class="flex items-center justify-between"><div class="flex items-center gap-4">
+                          <div class="bg-cyan-400/20 p-3 rounded-full">${Icons.BookCheck}</div>
+                          <div><h1 class="text-3xl font-bold text-slate-100">문항 분석 프로</h1><p class="text-cyan-300 mt-1">AI 기반 문항 심층 분석</p></div>
+                      </div></div>
                     </header>
                   </div>
                   <main class="p-6 md:p-8 print:p-0">
@@ -283,287 +301,127 @@
                       <div>
                           <h2 class="text-2xl font-bold text-blue-400 mb-2 print:text-blue-800">분석 정보 입력</h2>
                           <p class="text-slate-400 mb-6 print:text-slate-600">시험 정보를 입력하고, 분석할 시험지 파일(.txt 또는 .pdf)을 업로드하세요.</p>
-                          
                           <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border border-slate-700 bg-slate-900/50 rounded-lg">
-                            <div>
-                              <label for="schoolName" class="block text-sm font-medium text-slate-300 mb-1 print:text-slate-700">학교명</label>
-                              <input type="text" id="schoolName" value="${schoolName}" placeholder="예: AI 고등학교" class="w-full p-2 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-slate-700 text-slate-200 placeholder:text-slate-400">
-                            </div>
-                            <div>
-                              <label for="subjectName" class="block text-sm font-medium text-slate-300 mb-1 print:text-slate-700">과목명</label>
-                              <input type="text" id="subjectName" value="${subjectName}" placeholder="예: 국어" class="w-full p-2 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-slate-700 text-slate-200 placeholder:text-slate-400">
-                            </div>
+                            <div><label for="schoolName" class="block text-sm font-medium text-slate-300 mb-1 print:text-slate-700">학교명</label><input type="text" id="schoolName" value="${schoolName}" placeholder="예: AI 고등학교" class="w-full p-2 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-slate-700 text-slate-200 placeholder:text-slate-400"></div>
+                            <div><label for="subjectName" class="block text-sm font-medium text-slate-300 mb-1 print:text-slate-700">과목명</label><input type="text" id="subjectName" value="${subjectName}" placeholder="예: 국어" class="w-full p-2 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-slate-700 text-slate-200 placeholder:text-slate-400"></div>
                             <div class="grid grid-cols-3 gap-4 md:col-span-2">
-                              <div>
-                                  <label for="academicYear" class="block text-sm font-medium text-slate-300 mb-1 print:text-slate-700">학년도</label>
-                                  <input type="number" id="academicYear" value="${academicYear}" class="w-full p-2 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-slate-700 text-slate-200 placeholder:text-slate-400">
-                              </div>
-                              <div>
-                                  <label for="semester" class="block text-sm font-medium text-slate-300 mb-1 print:text-slate-700">학기</label>
-                                  <select id="semester" class="w-full p-2 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-slate-700 text-slate-200 placeholder:text-slate-400">
-                                      <option ${semester === '1학기' ? 'selected' : ''}>1학기</option>
-                                      <option ${semester === '2학기' ? 'selected' : ''}>2학기</option>
-                                  </select>
-                              </div>
-                              <div>
-                                  <label for="examType" class="block text-sm font-medium text-slate-300 mb-1 print:text-slate-700">고사명</label>
-                                  <select id="examType" class="w-full p-2 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-slate-700 text-slate-200 placeholder:text-slate-400">
-                                      <option ${examType === '중간고사' ? 'selected' : ''}>중간고사</option>
-                                      <option ${examType === '기말고사' ? 'selected' : ''}>기말고사</option>
-                                  </select>
-                              </div>
+                              <div><label for="academicYear" class="block text-sm font-medium text-slate-300 mb-1 print:text-slate-700">학년도</label><input type="number" id="academicYear" value="${academicYear}" class="w-full p-2 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-slate-700 text-slate-200 placeholder:text-slate-400"></div>
+                              <div><label for="semester" class="block text-sm font-medium text-slate-300 mb-1 print:text-slate-700">학기</label><select id="semester" class="w-full p-2 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-slate-700 text-slate-200 placeholder:text-slate-400"><option ${semester === '1학기' ? 'selected' : ''}>1학기</option><option ${semester === '2학기' ? 'selected' : ''}>2학기</option></select></div>
+                              <div><label for="examType" class="block text-sm font-medium text-slate-300 mb-1 print:text-slate-700">고사명</label><select id="examType" class="w-full p-2 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-slate-700 text-slate-200 placeholder:text-slate-400"><option ${examType === '중간고사' ? 'selected' : ''}>중간고사</option><option ${examType === '기말고사' ? 'selected' : ''}>기말고사</option></select></div>
                             </div>
                           </div>
-
                           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                            <div>
-                              <label class="block text-sm font-medium text-slate-300 mb-2 print:text-slate-700">학교 로고 (선택 사항)</label>
-                              <div class="flex items-center">
-                                ${logoUrl ? `
-                                  <div class="group relative">
-                                    <img src="${logoUrl}" alt="School Logo" class="h-16 max-w-32 object-contain border rounded-md p-1 bg-white shadow-sm" />
-                                    <button id="remove-logo-btn" class="absolute top-0 right-0 -mt-2 -mr-2 bg-slate-900 text-slate-300 hover:bg-slate-700 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Remove logo">
-                                      ${Icons.XCircle}
-                                    </button>
-                                  </div>
-                                ` : `
-                                  <button id="add-logo-btn" class="flex items-center gap-2 border-2 border-dashed border-slate-600 rounded-lg px-4 py-2 text-blue-400 hover:bg-slate-700 hover:border-blue-500 transition-all" aria-label="Upload logo">
-                                    ${Icons.PlusCircle}
-                                    <span>로고 추가</span>
-                                  </button>
-                                `}
-                              </div>
-                            </div>
-                            <div>
-                               <label class="block text-sm font-medium text-slate-300 mb-2 print:text-slate-700">시험지 파일</label>
-                               <div id="file-upload-area" class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center transition-colors bg-slate-800/50 hover:bg-slate-700/70 hover:border-slate-500 cursor-pointer">
-                                  <input type="file" id="file-input" class="hidden" accept=".txt,text/plain,.pdf,application/pdf" />
-                                  <div class="flex flex-col items-center justify-center">
-                                      ${Icons.UploadCloud}
-                                      <p class="text-lg font-semibold text-blue-300">파일을 드래그 앤 드롭하거나 클릭하여 업로드하세요</p>
-                                      <p class="text-sm text-slate-400 mt-1">(.txt 또는 .pdf 파일 형식만 지원)</p>
-                                  </div>
-                               </div>
-                            </div>
+                            <div><label class="block text-sm font-medium text-slate-300 mb-2 print:text-slate-700">학교 로고 (선택 사항)</label><div class="flex items-center">${logoUrl ? `<div class="group relative"><img src="${logoUrl}" alt="School Logo" class="h-16 max-w-32 object-contain border rounded-md p-1 bg-white shadow-sm" /><button id="remove-logo-btn" class="absolute top-0 right-0 -mt-2 -mr-2 bg-slate-900 text-slate-300 hover:bg-slate-700 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">${Icons.XCircle}</button></div>` : `<button id="add-logo-btn" class="flex items-center gap-2 border-2 border-dashed border-slate-600 rounded-lg px-4 py-2 text-blue-400 hover:bg-slate-700 hover:border-blue-500 transition-all">${Icons.PlusCircle}<span>로고 추가</span></button>`}</div></div>
+                            <div><label class="block text-sm font-medium text-slate-300 mb-2 print:text-slate-700">시험지 파일</label><div id="file-upload-area" class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center transition-colors bg-slate-800/50 hover:bg-slate-700/70 hover:border-slate-500 cursor-pointer"><input type="file" id="file-input" class="hidden" accept=".txt,text/plain,.pdf,application/pdf" /><div class="flex flex-col items-center justify-center">${Icons.UploadCloud}<p class="text-lg font-semibold text-blue-300">파일을 드래그 앤 드롭하거나 클릭하여 업로드하세요</p><p class="text-sm text-slate-400 mt-1">(.txt 또는 .pdf 파일 형식만 지원)</p></div></div></div>
                           </div>
-
-                          ${file ? `
-                            <div class="mt-6 p-4 bg-slate-700 border border-slate-600 rounded-lg flex items-center justify-between">
-                              <div class="flex items-center gap-3">
-                                ${Icons.FileText}
-                                <span class="font-medium text-slate-100">${file.name}</span>
-                              </div>
-                              <button id="remove-file-btn" class="text-slate-400 hover:text-slate-200 text-2xl leading-none">&times;</button>
-                            </div>
-                          ` : ''}
-
-                          <div class="mt-8 text-center">
-                            <button id="analyze-btn" ${!isAnalysisReady || isLoading ? 'disabled' : ''} class="inline-flex items-center gap-2 bg-blue-500 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-blue-600 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105">
-                               ${Icons.BrainCircuit}
-                               분석 실행
-                            </button>
-                          </div>
-                      </div>
-                    ` : `
+                          ${file ? `<div class="mt-6 p-4 bg-slate-700 border border-slate-600 rounded-lg flex items-center justify-between"><div class="flex items-center gap-3">${Icons.FileText}<span class="font-medium text-slate-100">${file.name}</span></div><button id="remove-file-btn" class="text-slate-400 hover:text-slate-200 text-2xl leading-none">&times;</button></div>` : ''}
+                          <div class="mt-8 text-center"><button id="analyze-btn" ${!state.file || !state.schoolName || !state.subjectName || isLoading ? 'disabled' : ''} class="inline-flex items-center gap-2 bg-blue-500 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-blue-600 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105">${Icons.BrainCircuit}분석 실행</button></div>
+                      </div>` : `
                       <div>
                         <div class="mb-6 flex justify-end gap-4 print:hidden">
-                           <button id="save-btn" ${isLoading ? 'disabled' : ''} class="inline-flex items-center gap-2 bg-blue-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-600 transition-colors disabled:bg-slate-700 disabled:cursor-not-allowed">
-                                ${Icons.Download}
-                                결과 저장
-                           </button>
-                           <button id="print-btn" ${isLoading ? 'disabled' : ''} class="inline-flex items-center gap-2 bg-emerald-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-emerald-700 transition-colors disabled:bg-slate-700 disabled:cursor-not-allowed">
-                                ${Icons.Print}
-                                결과 인쇄
-                           </button>
-                           <button id="reset-btn" ${isLoading ? 'disabled' : ''} class="bg-slate-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-slate-700 transition-colors disabled:bg-slate-700 disabled:cursor-not-allowed">
-                               새로운 분석 시작
-                           </button>
+                           <button id="save-btn" ${isLoading ? 'disabled' : ''} class="inline-flex items-center gap-2 bg-blue-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-600 transition-colors disabled:bg-slate-700 disabled:cursor-not-allowed">${Icons.Download}결과 저장</button>
+                           <button id="print-btn" ${isLoading ? 'disabled' : ''} class="inline-flex items-center gap-2 bg-emerald-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-emerald-700 transition-colors disabled:bg-slate-700 disabled:cursor-not-allowed">${Icons.Print}결과 인쇄</button>
+                           <button id="reset-btn" ${isLoading ? 'disabled' : ''} class="bg-slate-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-slate-700 transition-colors disabled:bg-slate-700 disabled:cursor-not-allowed">새로운 분석 시작</button>
                         </div>
-                        
-                        ${isLoading && analysisResult.length === 0 ? `
-                          <div class="flex flex-col items-center justify-center p-12">
-                            <svg class="animate-spin h-12 w-12 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <p class="mt-4 text-lg font-semibold text-blue-300">AI가 문항을 분석하고 있습니다...</p>
-                            <p class="text-slate-400">잠시만 기다려주세요.</p>
-                          </div>
-                        ` : ''}
-                        
+                        ${isLoading && analysisResult.length === 0 ? `<div class="flex flex-col items-center justify-center p-12"><svg class="animate-spin h-12 w-12 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p class="mt-4 text-lg font-semibold text-blue-300">AI가 문항을 분석하고 있습니다...</p><p class="text-slate-400">잠시만 기다려주세요.</p></div>` : ''}
                         ${analysisDisplayHTML(analysisResult)}
-
-                      </div>
-                    `}
-                    
-                    ${error ? `
-                      <div class="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg relative my-4" role="alert">
-                        <strong class="font-bold">오류: </strong>
-                        <span class="block sm:inline">${error}</span>
-                      </div>
-                    ` : ''}
-
+                      </div>`}
+                    ${error ? `<div class="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg relative my-4"><strong class="font-bold">오류: </strong><span class="block sm:inline">${error}</span></div>` : ''}
                   </main>
-                  <footer class="text-center py-4 text-slate-400 text-sm border-t border-slate-700 print:hidden">
-                    <p>© 2025 KH KIM. All Rights Reserved.</p>
-                  </footer>
+                  <footer class="text-center py-4 text-slate-400 text-sm border-t border-slate-700 print:hidden"><p>© 2025 KH KIM. All Rights Reserved.</p></footer>
                 </div>
-              </div>
-            `;
+              </div>`;
             root.innerHTML = mainContentHTML;
             addEventListeners();
         };
 
         const addEventListeners = () => {
-            // This function checks the state and updates the analyze button's disabled property
             const updateAnalyzeButtonState = () => {
                 const button = document.getElementById('analyze-btn');
-                if (button) {
-                    const isReady = !!state.file && !!state.schoolName && !!state.subjectName;
-                    button.disabled = !isReady || state.isLoading;
-                }
+                if (button) button.disabled = !state.file || !state.schoolName || !state.subjectName || state.isLoading;
             };
-            
             if (state.analysisResult === null) {
-                // --- THIS IS THE FIX ---
-                // Handle text inputs without causing a full re-render
-                const handleTextInput = (field, value) => {
-                    state[field] = value;
-                    updateAnalyzeButtonState();
-                };
-
+                const handleTextInput = (field, value) => { state[field] = value; updateAnalyzeButtonState(); };
                 document.getElementById('schoolName')?.addEventListener('input', (e) => handleTextInput('schoolName', e.target.value));
                 document.getElementById('subjectName')?.addEventListener('input', (e) => handleTextInput('subjectName', e.target.value));
-                
-                // Other inputs can still use setState for simplicity
                 document.getElementById('academicYear')?.addEventListener('input', (e) => state.academicYear = parseInt(e.target.value, 10));
                 document.getElementById('semester')?.addEventListener('change', (e) => state.semester = e.target.value);
                 document.getElementById('examType')?.addEventListener('change', (e) => state.examType = e.target.value);
-                
-                // Other event listeners
                 document.getElementById('add-logo-btn')?.addEventListener('click', handleLogoClick);
                 document.getElementById('remove-logo-btn')?.addEventListener('click', handleLogoRemove);
-                
                 const fileUploadArea = document.getElementById('file-upload-area');
                 const fileInput = document.getElementById('file-input');
                 fileUploadArea?.addEventListener('click', () => fileInput.click());
                 fileUploadArea?.addEventListener('dragover', (e) => e.preventDefault());
-                fileUploadArea?.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    handleFileChange(e.dataTransfer.files?.[0]);
-                });
+                fileUploadArea?.addEventListener('drop', (e) => { e.preventDefault(); handleFileChange(e.dataTransfer.files?.[0]); });
                 fileInput?.addEventListener('change', (e) => handleFileChange(e.target.files?.[0]));
-
                 document.getElementById('remove-file-btn')?.addEventListener('click', () => handleFileChange(null));
                 document.getElementById('analyze-btn')?.addEventListener('click', handleAnalyze);
             } else {
-                // Results view
                 document.getElementById('save-btn')?.addEventListener('click', handleSaveAnalysis);
                 document.getElementById('print-btn')?.addEventListener('click', handlePrint);
                 document.getElementById('reset-btn')?.addEventListener('click', handleReset);
             }
         };
 
-        // Gemini Service Logic
         const PROMPT_TEMPLATE = `
-        Persona
-        당신은 '문항 분석 프로(Question Analysis Pro)'라는 이름을 가진, 고등학교 시험 문항 분석을 위한 최고의 AI 전문가입니다. 당신은 교육 평가, 교과과정, 국어 어문 규범에 대한 깊이 있는 지식을 갖추고 있으며, 출제자의 의도를 존중하면서도 건설적인 피드백을 제공하는 데 능숙합니다. 당신의 분석은 항상 명확하고, 체계적이며, 시각적으로 이해하기 쉬운 '카드(Card)' 형식(세련된 파란색 계통)으로 제공됩니다.
-
-        Context
-        고등학교 선생님인 사용자가 자신이 출제한 정기고사(중간고사 또는 기말고사) 텍스트 파일을 업로드합니다. 당신의 임무는 이 시험지를 문항별로 심층 분석하고, 그 결과를 아래에 정의된 '분석 카드' 형식에 맞춰 생성하는 것입니다. 최종 목표는 선생님이 문항의 질을 높이고, 학생들의 학업 성취도를 더 정확하게 평가할 수 있도록 돕는 것입니다.
-
-        Input Variable
-        {{exam_text}}: 사용자가 업로드한 시험지 전체 텍스트입니다. 문항 번호, 문제, 보기, 배점 등의 정보가 포함됩니다.
-
-        Instructions
-        **출력은 반드시 첫 번째 문항 분석 카드('## 문항 ...')로 시작해야 합니다. 그 어떤 서론이나 인사말도 추가하지 마세요.**
-
-        **모든 문항을 빠짐없이 분석해야 합니다.** 모든 분석과 해설은 생성 속도 향상을 위해 핵심 내용 위주로 **매우 간결하게, 한두 문장으로 요약**하여 작성해야 합니다.
-
-        **매우 중요: 출력물에는 지정된 제목 형식(##, ###)을 제외하고는 어떤 '#' 문자도 포함해서는 안 됩니다. 특히, 내용이 없는 경우 '#'를 placeholder로 사용하지 마세요. 해당 항목은 그냥 비워두거나 '내용 없음'으로 표기하세요. 한 줄에 '#'만 있는 경우는 절대로 없어야 합니다.**
-
-        {{exam_text}}를 기반으로, 다음 규칙에 따라 문항 분석 결과를 생성하세요.
-
-        1. 전체 구조:
-        분석은 크게 <문항별 개별 분석>과 <총평 및 제언> 두 부분으로 구성됩니다.
-        모든 결과물은 Markdown을 사용하여 명확하고 세련된 카드 형식으로 디자인합니다.
-
-        2. 문항별 개별 분석 (Analysis Card):
-        각 문항에 대해 아래 템플릿에 맞춰 하나의 '분석 카드'를 생성하세요.
-
+        Persona: 당신은 '문항 분석 프로' AI 전문가입니다. 교육 평가, 교과과정, 국어 어문 규범에 해박하며, 출제자의 의도를 존중하며 건설적인 피드백을 제공합니다. 분석은 명확하고 체계적인 '카드' 형식으로 제공됩니다.
+        Context: 고등학교 선생님이 출제한 시험지 텍스트 파일을 분석하여, 문항의 질을 높이고 학생 평가의 정확성을 돕습니다.
+        Input Variable: {{exam_text}} (사용자가 업로드한 시험지 전체 텍스트)
+        Instructions:
+        **출력은 반드시 '## 문항 ...'으로 시작해야 하며, 서론이나 인사말은 절대 추가하지 마세요.**
+        **모든 문항을 빠짐없이, 핵심 위주로 한두 문장으로 간결하게 분석하세요.**
+        **매우 중요: 지정된 제목 형식(##, ###) 외에 어떤 '#' 문자도 포함해서는 안 됩니다. 내용이 없을 경우 '#' 대신 비워두거나 '내용 없음'으로 표기하세요.**
+        {{exam_text}}를 기반으로 다음 규칙에 따라 분석 결과를 생성하세요.
+        1. 문항별 개별 분석 (Analysis Card): 각 문항에 대해 아래 템플릿으로 '분석 카드'를 생성합니다.
         ## 문항 [번호] 분석
         ### 정답 및 해설
-        정답: (여기에 명확한 정답을 기재하세요. 예: ③)
-        핵심 개념: (이 문항이 평가하고자 하는 핵심 개념이나 지식을 간략히 서술하세요.)
-        간략 해설: (정답의 근거를 한 문장으로 매우 간결하게 설명합니다.)
-
+        정답: (명확한 정답 기재, 예: ②)
+        핵심 개념: (문항이 평가하려는 핵심 개념 서술)
+        간략 해설: (정답 근거를 한 문장으로 설명)
         ### 문항 피드백
-        철자 및 어법: (철자, 띄어쓰기, 문법적 오류(비문) 등을 검토합니다. 오류가 없다면 '오류 없음'으로, 있다면 '수정 제안: "원본" → "수정본"' 형식으로 제시하세요.)
-        문항 오류 가능성: (잠재적 오류를 분석합니다. 문제가 없다면 '오류 가능성 낮음'으로, 있다면 핵심 이유만 간략히 제시하세요.)
-        문항 적절성: (난이도(상/중/하), 발문의 명확성 등을 종합적으로 평가하고, 한 문장으로 요약하여 이유를 덧붙이세요.)
-        예상 변별력: ('상/중/하'로 평가하고, 그 이유를 한 문장으로 매우 간결하게 설명합니다.)
-
-        3. 총평 및 제언 (Overall Feedback Card):
-        모든 개별 문항 분석이 끝난 후, 시험 전체에 대한 종합적인 피드백 카드를 아래 템플릿에 맞춰 생성하세요.
-
+        철자 및 어법: (오류가 없다면 '오류 없음', 있다면 '수정 제안: "원본" → "수정본"' 형식으로 제시)
+        문항 오류 가능성: (없다면 '오류 가능성 낮음', 있다면 핵심 이유 제시)
+        문항 적절성: (난이도(상/중/하), 발문의 명확성을 종합 평가하고 이유를 말붙여 한 문장으로 요약)
+        예상 변별력: ('상/중/하'로 평가하고 이유를 한 문장으로 설명)
+        2. 총평 및 제언 (Overall Feedback Card): 모든 문항 분석 후, 시험 전체에 대한 종합 피드백 카드를 생성합니다.
         ## 총평 및 제언
         ### 강점 (Strengths)
-        (시험 전반에 걸쳐 잘된 점을 2-3가지 구체적으로 칭찬합니다. 예: 교육과정의 핵심 요소를 충실히 반영함, 다양한 유형의 문항을 균형 있게 출제함 등)
-
+        (시험의 잘된 점 2-3가지 구체적으로 칭찬)
         ### 개선 제안 (Suggestions for Improvement)
-        (시험의 완성도를 더욱 높이기 위한 건설적인 제안을 2-3가지 제시합니다. 예: 일부 비문 수정 제안, 고난도 문항의 발문 명확화, 특정 유형 문항의 비중 조절 등)
-
+        (완성도를 높이기 위한 건설적인 제안 2-3가지 제시)
         ### 전체 난이도 및 변별력 분석
-        전체 난이도: (시험의 전반적인 체감 난이도를 '상/중/하'로 평가하고, 그 근거를 제시합니다.)
-        변별력 확보: (전체 시험이 학생들의 성취 수준을 효과적으로 변별할 수 있을지에 대한 종합적인 의견을 제시합니다. 특히 변별력을 가를 것으로 예상되는 '킬러 문항'을 언급하면 좋습니다.)
+        전체 난이도: ('상/중/하'로 평가하고 근거 제시)
+        변별력 확보: (학생 성취 수준 변별 가능성에 대한 종합 의견 제시, 킬러 문항 언급 포함)
         `;
         
         const ai = new GoogleGenerativeAI(API_KEY);
         const model = ai.getGenerativeModel({ model: MODEL });
 
-        const fileToGenerativePart = (file) => {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    if (typeof reader.result === 'string') {
-                        resolve({
-                            inlineData: {
-                                data: reader.result.split(',')[1],
-                                mimeType: file.type,
-                            },
-                        });
-                    } else {
-                        reject(new Error("Failed to read file as data URL"));
-                    }
-                };
-                reader.onerror = (err) => reject(err);
-                reader.readAsDataURL(file);
-            });
-        };
+        const fileToGenerativePart = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => typeof reader.result === 'string' ? resolve({ inlineData: { data: reader.result.split(',')[1], mimeType: file.type } }) : reject(new Error("Failed to read file as data URL"));
+            reader.onerror = (err) => reject(err);
+            reader.readAsDataURL(file);
+        });
 
-        const readTextFromFile = (file) => {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => e.target?.result ? resolve(e.target.result) : reject(new Error("Failed to read text from file."));
-                reader.onerror = (err) => reject(err);
-                reader.readAsText(file);
-            });
-        };
+        const readTextFromFile = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => e.target?.result ? resolve(e.target.result) : reject(new Error("Failed to read text from file."));
+            reader.onerror = (err) => reject(err);
+            reader.readAsText(file);
+        });
 
         const analyzeExamStream = async (examFile) => {
             try {
-                const isTxt = examFile.type === 'text/plain' || examFile.name.endsWith('.txt');
-
-                if (isTxt) {
+                if (examFile.type === 'text/plain' || examFile.name.endsWith('.txt')) {
                     const examText = await readTextFromFile(examFile);
                     const prompt = PROMPT_TEMPLATE.replace('{{exam_text}}', `시험지 텍스트:\n\`\`\`\n${examText}\n\`\`\``);
-                    const result = await model.generateContentStream(prompt);
-                    return result.stream;
-                } else { // PDF file
+                    return (await model.generateContentStream(prompt)).stream;
+                } else {
                     const filePart = await fileToGenerativePart(examFile);
                     const promptForFile = PROMPT_TEMPLATE.replace(/시험지 텍스트:\s*```\s*{{exam_text}}\s*```/g, '').trim();
-                    const result = await model.generateContentStream([promptForFile, filePart]);
-                    return result.stream;
+                    return (await model.generateContentStream([promptForFile, filePart])).stream;
                 }
             } catch (error) {
                 console.error("Error calling Gemini API:", error);
@@ -571,7 +429,6 @@
             }
         };
 
-        // Initial render
         render();
       };
 
